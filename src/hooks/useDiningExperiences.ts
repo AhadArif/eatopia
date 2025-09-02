@@ -9,7 +9,7 @@ import {
   subscribeToUserExperiences
 } from '@/lib/experiences';
 
-export function useExperiences() {
+export function useDiningExperiences() {
   const { user } = useAuth();
   const [experiences, setExperiences] = useState<DiningExperience[]>([]);
   const [stats, setStats] = useState({
