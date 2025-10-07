@@ -4,12 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Menu, MenuItem } from '@/components/ui/navbar-menu';
 import { SimpleAvatar } from '@/components/ui/SimpleAvatar';
 
 export default function Header() {
   const { user, logout } = useAuth();
   const [active, setActive] = useState<string | null>(null);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   return (
     <header className="bg-white/95 dark:bg-black/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 fixed top-0 left-0 right-0 z-50">
@@ -50,7 +50,15 @@ export default function Header() {
                   Contact
                 </Link>
 
-                <div className="relative" onMouseEnter={() => setActive("profile")} onMouseLeave={() => setActive(null)}>
+                <div className="relative" 
+                     onMouseEnter={() => {
+                       if (hoverTimeout) clearTimeout(hoverTimeout);
+                       setActive("profile");
+                     }} 
+                     onMouseLeave={() => {
+                       const timeout = setTimeout(() => setActive(null), 300);
+                       setHoverTimeout(timeout);
+                     }}>
                   {/* Avatar Trigger */}
                   <div className="cursor-pointer p-1 rounded-full hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-200">
                     <SimpleAvatar 
@@ -62,7 +70,7 @@ export default function Header() {
                   
                   {/* Dropdown Menu */}
                   {active === "profile" && (
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50">
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 z-50">
                       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 min-w-[200px]">
                         <div className="flex flex-col space-y-2 text-sm">
                           <Link href="/dashboard" className="text-neutral-700 dark:text-neutral-200 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all duration-300 p-2 rounded-lg mx-2">

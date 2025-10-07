@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Navbar';
 import { ScrollAnimatedSection } from '@/components/animation/AnimatedSection';
@@ -13,7 +13,15 @@ import BackButton from '@/components/layout/BackButton';
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { experiences, stats, loading, error, refreshExperiences } = useDiningExperiences();
+    const { experiences, stats, loading } = useDiningExperiences();
+  
+  // Debug: Log what experiences we're rendering
+  useEffect(() => {
+    console.log('Dashboard received experiences:', experiences.map(exp => ({ id: exp.id, status: exp.status, date: exp.date })));
+  }, [experiences]);
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState<{ type: 'edit' | 'delete' | null, experience: typeof experiences[0] | null }>({ type: null, experience: null });
+  const [dropdownTimeout, setDropdownTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -21,6 +29,29 @@ export default function DashboardPage() {
       return;
     }
   }, [user, router]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        if (dropdownTimeout) clearTimeout(dropdownTimeout);
+        setDropdownOpen(null);
+      }
+    };
+    
+    if (dropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [dropdownOpen, dropdownTimeout]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeout) clearTimeout(dropdownTimeout);
+    };
+  }, [dropdownTimeout]);
 
   if (!user) {
     return null; // Will redirect to login
@@ -159,16 +190,13 @@ export default function DashboardPage() {
               <h3 className="text-3xl font-roboto text-black dark:text-white mb-4">
                 Ready for Your First <span className="text-orange-500">Adventure</span>?
               </h3>
-              <p className="text-lg text-gray-600 dark:text-gray-400 font-roboto max-w-md mx-auto leading-relaxed">
+              <p className="text-lg text-gray-600 dark:text-gray-400 font-roboto max-w-md mx-auto leading-relaxed mb-10">
                 Transform ordinary meals into extraordinary memories. Start your culinary journey today!
               </p>
               <Link 
                 href="/create-experience"
                 className="inline-flex items-center bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-4 rounded-2xl font-roboto text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg"
               >
-                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
                 Create Your First Experience
               </Link>
               
@@ -210,7 +238,11 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {experiences.map((experience, index) => (
               <ScrollAnimatedSection key={experience.id} animation="slideUp" delay={800 + (index * 100)}>
-                <div className="bg-white dark:bg-black/80 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-300 group">
+                <div 
+                  className="bg-white dark:bg-black/80 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-300 group relative"
+                  data-experience-id={experience.id}
+                  style={{ zIndex: dropdownOpen === experience.id ? 99999 : 1 }}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
@@ -240,7 +272,10 @@ export default function DashboardPage() {
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
-                        {experience.status.charAt(0).toUpperCase() + experience.status.slice(1)}
+                        {(() => {
+                          console.log(`Rendering experience ${experience.id} with status: ${experience.status}`);
+                          return experience.status.charAt(0).toUpperCase() + experience.status.slice(1);
+                        })()}
                       </span>
                       {experience.rating && (
                         <div className="flex items-center space-x-1">
@@ -256,11 +291,101 @@ export default function DashboardPage() {
                           ))}
                         </div>
                       )}
-                      <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
+                      <div className="relative dropdown-container" style={{ zIndex: 10000 }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const experienceId = experience.id || null;
+                            
+                            if (dropdownOpen === experienceId) {
+                              // Close if already open
+                              setDropdownOpen(null);
+                              if (dropdownTimeout) clearTimeout(dropdownTimeout);
+                            } else {
+                              // Open and set auto-close timer
+                              setDropdownOpen(experienceId);
+                              if (dropdownTimeout) clearTimeout(dropdownTimeout);
+                              
+                              const timeout = setTimeout(() => {
+                                setDropdownOpen(null);
+                              }, 4000); // Auto-close after 4 seconds
+                              setDropdownTimeout(timeout);
+                            }
+                          }}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors relative z-50"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </button>
+                        
+                        {/* Dropdown Menu */}
+                        {dropdownOpen === experience.id && (
+                          <div 
+                            className="absolute top-8 right-0 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-3 min-w-[160px] backdrop-blur-sm animate-in slide-in-from-top-2 duration-200 z-[99999]"
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseEnter={() => {
+                              // Cancel auto-close when hovering over dropdown
+                              if (dropdownTimeout) {
+                                clearTimeout(dropdownTimeout);
+                                setDropdownTimeout(null);
+                              }
+                            }}
+                            onMouseLeave={() => {
+                              // Restart auto-close timer when leaving dropdown
+                              const timeout = setTimeout(() => {
+                                setDropdownOpen(null);
+                              }, 2000); // Shorter timeout after leaving
+                              setDropdownTimeout(timeout);
+                            }}
+                            style={{
+                              zIndex: 99999,
+                              position: 'absolute',
+                              right: 0,
+                              top: '100%',
+                              marginTop: '8px',
+                              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 165, 0, 0.2)'
+                            }}
+                          >
+                            <button
+                              onClick={() => {
+                                if (dropdownTimeout) clearTimeout(dropdownTimeout);
+                                setModalOpen({ type: 'edit', experience });
+                                setDropdownOpen(null);
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-600 dark:hover:text-orange-400 flex items-center gap-3 transition-all duration-200 rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <div className="font-medium">Edit</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Modify details</div>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (dropdownTimeout) clearTimeout(dropdownTimeout);
+                                setModalOpen({ type: 'delete', experience });
+                                setDropdownOpen(null);
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-3 transition-all duration-200 rounded-lg mx-2"
+                            >
+                              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                                <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </div>
+                              <div>
+                                <div className="font-medium">Delete</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Remove permanently</div>
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -269,6 +394,130 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {modalOpen.type === 'edit' && modalOpen.experience && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Experience</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Modify your dining experience details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalOpen({ type: null, experience: null })}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">{modalOpen.experience.name}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{modalOpen.experience.restaurant}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{modalOpen.experience.location} • {modalOpen.experience.date.toLocaleDateString()}</p>
+                </div>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Edit functionality is coming soon! You&apos;ll be able to modify the date, location, restaurant, and other details of your dining experience.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setModalOpen({ type: null, experience: null })}
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    // Future: Implement actual edit functionality
+                    setModalOpen({ type: null, experience: null });
+                  }}
+                  className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-colors font-medium"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {modalOpen.type === 'delete' && modalOpen.experience && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Experience</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalOpen({ type: null, experience: null })}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">{modalOpen.experience.name}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{modalOpen.experience.restaurant}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{modalOpen.experience.location} • {modalOpen.experience.date.toLocaleDateString()}</p>
+                </div>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete this dining experience? This will permanently remove all associated data and cannot be recovered.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setModalOpen({ type: null, experience: null })}
+                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Delete experience:', modalOpen.experience?.id);
+                    // Future: Implement actual delete functionality
+                    // refreshExperiences();
+                    setModalOpen({ type: null, experience: null });
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-medium"
+                >
+                  Delete Experience
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import emailjs from "@emailjs/browser";
-import Header from "@/components/Header";
-import BackButton from "@/components/BackButton";
+import Header from "@/components/layout/Navbar";
+import BackButton from "@/components/layout/BackButton";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -89,7 +89,7 @@ export default function Contact() {
             Contact Us
           </h1>
           <p className="text-lg md:text-xl font-roboto text-gray-700 dark:text-gray-200 max-w-3xl mx-auto">
-            Have questions or feedback? We'd love to hear from you!
+            Have questions or feedback? We&apos;d love to hear from you!
           </p>
         </section>
 
@@ -193,7 +193,7 @@ export default function Contact() {
                 </svg>
               </div>
               <h3 className="text-xl font-roboto text-gray-900 dark:text-white mb-2">Location</h3>
-              <p className="text-gray-600 dark:text-gray-400 font-roboto">St Joseph's University<br />Philadelphia, PA</p>
+              <p className="text-gray-600 dark:text-gray-400 font-roboto">St Joseph&apos;s University<br />Philadelphia, PA</p>
             </div>
           </div>
         </section>

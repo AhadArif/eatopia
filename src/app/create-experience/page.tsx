@@ -93,7 +93,7 @@ export default function CreateExperiencePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black/90 relative overflow-x-hidden">
+    <div className="min-h-screen bg-gray-100 dark:bg-black/90 relative overflow-x-hidden">
       <BackButton />
       <SimpleMouseTracker />
       <Header />
@@ -114,10 +114,10 @@ export default function CreateExperiencePage() {
                 Back to Dashboard
               </Link>
               
-              <h1 className="text-4xl md:text-5xl font-roboto text-black dark:text-white mb-4">
-                Create New <span className="text-orange-500">Experience</span>
+              <h1 className="text-4xl md:text-5xl font-roboto text-black dark:text-white mb-4 drop-shadow-lg font-bold">
+                <span className="text-black">Create New</span> <span className="text-orange-500">Experience</span>
               </h1>
-              <p className="text-lg font-roboto dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-lg font-roboto text-black dark:text-gray-300 max-w-2xl mx-auto drop-shadow-lg font-semibold" style={{color: '#000000'}}>
                 Plan your next extraordinary dining adventure and capture every delicious moment
               </p>
             </div>
@@ -356,9 +356,6 @@ export default function CreateExperiencePage() {
                     </div>
                   ) : (
                     <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
                       Create Experience
                     </span>
                   )}

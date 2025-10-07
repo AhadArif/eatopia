@@ -26,11 +26,11 @@ export default function About() {
     },
     {
       name: 'Abdul Ahad Arif',
-      role: 'Frontend Developer',
+      role: 'Full Stack Developer',
       image: '/team/ahad.jpg',
       linkedin: 'https://www.linkedin.com/in/ahad-arif-b1b832262/',
       github: 'https://github.com/AhadArif',
-      description: 'Focused on creating beautiful and responsive user interfaces.'
+      description: 'Crafting responsive, user-friendly interfaces with backend insight'
     }
   ];
 
@@ -56,7 +56,7 @@ export default function About() {
             <h2 className="text-3xl md:text-5xl font-roboto mb-6 text-gray-900 dark:text-white">Our Story</h2>
             <p className="text-lg font-roboto text-gray-700 dark:text-gray-200">
               EATOPIA was born from a shared vision of transforming the restaurant discovery experience. 
-              In today's fast-paced world, we recognized that dining isn't just about food—it's about 
+              In today&apos;s fast-paced world, we recognized that dining isn&apos;t just about food—it&apos;s about 
               finding the perfect atmosphere that matches your mood and occasion. Our team came together 
               during our academic journey, combining our diverse skills and passion for technology to 
               create a platform that makes finding your ideal dining spot both intuitive and enjoyable.

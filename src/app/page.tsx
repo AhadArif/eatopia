@@ -1,7 +1,6 @@
 import Header from '@/components/layout/Navbar';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PixabayBackground } from '@/components/background/PixabayBackground';
 import { ParallaxSection } from '@/components/background/ParallaxSection';
 import { ScrollAnimatedSection } from '@/components/animation/AnimatedSection';
 import { MouseTracker, FloatingElement } from '@/components/animation/MouseTracker';
@@ -203,7 +202,7 @@ export default function Home() {
                     Choose Group Size
                   </h3>
                   <p className="text-lg text-gray-300 font-roboto leading-relaxed">
-                    Tell us how many people will be dining. Whether it's a romantic dinner for two or a celebration for 20, we've got you covered.
+                    Tell us how many people will be dining. Whether it&apos;s a romantic dinner for two or a celebration for 20, we&apos;ve got you covered.
                   </p>
                 </div>
                 <div className="relative">
